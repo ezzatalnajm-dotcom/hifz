@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>حفظ وترتيل القرآن</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0f3d33">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f6f3;--card:#fff;--ink:#17261f;--mute:#5d6e65;--green:#0f3d33;--green2:#1d6b57;--gold:#b8891c;--line:#d9e3dd;--ok:#1d6b57;--warn:#b8891c;--bad:#a8362b}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1714;--card:#15241f;--ink:#e8f0eb;--mute:#9bb0a6;--green:#0b2b24;--green2:#3fa88c;--gold:#e0b64a;--line:#27413a;--ok:#3fa88c;--warn:#e0b64a;--bad:#e5766b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Cairo,Tahoma,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{background:var(--green);color:#fff;padding:18px 16px;text-align:center}
+header h1{margin:0;font:700 28px Amiri,serif;letter-spacing:0}
+header p{margin:4px 0 0;color:#cfe3da;font-size:14px}
+main{max-width:720px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+h2{font-size:18px;margin:0 0 10px}
+input,button{font:inherit}
+input{width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);margin-bottom:8px}
+button{border:0;border-radius:8px;padding:10px 14px;background:var(--green2);color:#fff;cursor:pointer;font-weight:600}
+button.alt{background:transparent;color:var(--green2);border:1px solid var(--green2)}
+button.gold{background:var(--gold);color:#1b1500}
+button.bad{background:var(--bad)}
+button:disabled{opacity:.5}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1}
+.bar{height:12px;background:var(--line);border-radius:6px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--gold);transition:width .3s}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.s{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:700 18px Amiri,serif;text-align:right;justify-content:flex-start}
+.s b{width:24px;height:24px;border:2px solid var(--line);border-radius:50%;display:grid;place-items:center;font:700 14px Cairo;flex:none;color:#fff}
+.s.on{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,var(--card))}
+.s.on b{background:var(--ok);border-color:var(--ok)}
+.tag{display:inline-block;padding:2px 9px;border-radius:99px;font-size:13px;font-weight:600;border:1px solid currentColor}
+.t-none{color:var(--mute)}.t-requested{color:var(--warn)}.t-approved{color:var(--ok)}
+.note{background:color-mix(in srgb,var(--gold) 16%,var(--card));border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin-bottom:12px}
+.tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto}
+.tabs button{background:transparent;color:var(--ink);border:1px solid var(--line);flex:none}
+.tabs button.on{background:var(--green2);color:#fff;border-color:var(--green2)}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.big{font:700 34px Amiri,serif;color:var(--gold)}
+#toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:10px 16px;border-radius:8px;z-index:9}
+.mute{color:var(--mute);font-size:14px}
+</style>
+</head>
+<body>
+<header><h1>حفظ وترتيل القرآن</h1><p>مسابقة حفظ جزء عمّ</p></header>
+<main id="app"></main>
+<div id="toast" hidden></div>
+<script>
+// ضع هنا رابط Web App اللي هتاخده من Apps Script (بعد النشر)
+const API = 'https://script.google.com/macros/s/AKfycbxjFzuLhkxYL-aiOFaNi_Z4DqG56JH6Dt6SxR-L1I8Hbcqz4RxbSI3-ekCkCjhURVtE/exec';
+
+const SURAHS = ['النبأ','النازعات','عبس','التكوير','الانفطار','المطففين','الانشقاق','البروج','الطارق','الأعلى','الغاشية','الفجر','البلد','الشمس','الليل','الضحى','الشرح','التين','العلق','القدر','البينة','الزلزلة','العاديات','القارعة','التكاثر','العصر','الهمزة','الفيل','قريش','الماعون','الكوثر','الكافرون','النصر','المسد','الإخلاص','الفلق','الناس'];
+const TOTAL = SURAHS.length;
+const EXAM = {none:'لم يتقدم للاختبار', requested:'في انتظار اعتماد المشرف', approved:'معتمد في الاختبار'};
+
+const app = document.getElementById('app');
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const toast = m => { const t = document.getElementById('toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2800); };
+const val = id => document.getElementById(id).value.trim();
+
+async function api(action, data = {}) {
+  const r = await fetch(API + '?q=' + encodeURIComponent(JSON.stringify({action, ...data})));
+  const j = await r.json();
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+async function run(fn) { try { await fn(); } catch (e) { toast(e.message === 'Failed to fetch' ? 'تعذّر الاتصال بالخادم (' + e.message + ')' : e.message); } }
+
+let PASS = sessionStorage.getItem('pass') || '';
+let ID = localStorage.getItem('sid') || '';
+let TAB = 'students';
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; document.getElementById('inst')?.removeAttribute('hidden'); });
+const installBtn = '<button class="gold" id="inst" ' + '' + ' hidden onclick="doInstall()">تثبيت التطبيق</button>';
+async function doInstall() { if (installEvt) { installEvt.prompt(); installEvt = null; document.getElementById('inst').hidden = true; } }
+function logout() { PASS = ''; ID = ''; sessionStorage.clear(); localStorage.removeItem('sid'); start(); }
+
+/* ---------- الدخول ---------- */
+function loginView() {
+  app.innerHTML = `
+  <div class="card"><h2>دخول الطالب</h2>
+    <input id="sid" inputmode="numeric" placeholder="كود الطالب">
+    <div class="row"><button id="b1">دخول</button><button class="alt" id="b2">تسجيل طالب جديد</button></div></div>
+  <div class="card"><h2>دخول المشرف أو المالك</h2>
+    <input id="pw" type="password" placeholder="كلمة السر">
+    <button id="b3">دخول</button></div>
+  <div class="row">${installBtn}</div>`;
+  if (installEvt) document.getElementById('inst').hidden = false;
+  b1.onclick = () => run(async () => { const id = val('sid'); await api('me', {id}); ID = id; localStorage.setItem('sid', id); start(); });
+  b2.onclick = registerView;
+  b3.onclick = () => run(async () => { const pass = val('pw'); await api('login', {pass}); PASS = pass; sessionStorage.setItem('pass', pass); start(); });
+}
+
+function registerView() {
+  app.innerHTML = `<div class="card"><h2>تسجيل طالب جديد</h2>
+    <input id="n" placeholder="اسم الطالب"><input id="p" inputmode="tel" placeholder="هاتف الطالب">
+    <input id="pp" inputmode="tel" placeholder="هاتف ولي الأمر"><input id="a" placeholder="منطقة السكن">
+    <div class="row"><button id="go">تسجيل</button><button class="alt" id="back">رجوع</button></div></div>`;
+  back.onclick = loginView;
+  go.onclick = () => run(async () => {
+    const r = await api('register', {name: val('n'), phone: val('p'), parent: val('pp'), area: val('a')});
+    ID = r.id; localStorage.setItem('sid', ID);
+    app.innerHTML = `<div class="card" style="text-align:center"><h2>تم التسجيل</h2><p>كود الطالب الخاص بك:</p><div class="big">${esc(ID)}</div><p class="mute">احتفظ بالكود، هتدخل بيه كل مرة.</p><button id="c">ابدأ الحفظ</button></div>`;
+    c.onclick = start;
+  });
+}
+
+/* ---------- الطالب ---------- */
+async function studentView() {
+  const {s} = await api('me', {id: ID});
+  let marks = new Set(s.marks);
+  const draw = () => {
+    const n = marks.size, pct = Math.round(n / TOTAL * 100);
+    app.innerHTML = `
+    <div id="remind"></div>
+    <div class="card"><div class="row"><div><h2 style="margin:0">${esc(s.name)}</h2><span class="mute">كود ${esc(s.id)}</span></div><button class="alt" onclick="logout()" style="flex:none">خروج</button></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div>حفظت <b>${n}</b> من ${TOTAL} سورة (${pct}%)</div></div>
+    <div class="card"><div class="row"><div><span class="tag t-${s.exam}">${EXAM[s.exam]}</span></div>
+      ${s.exam === 'none' ? '<button class="gold" id="ex" style="flex:none">التقديم للاختبار</button>' : ''}</div>
+      <p class="mute" style="margin:8px 0 0">الاختبار شرط لدخول الترتيب النهائي.</p></div>
+    <div class="grid">${SURAHS.map((nm, i) => `<button class="s ${marks.has(i + 78) ? 'on' : ''}" data-i="${i + 78}" aria-pressed="${marks.has(i + 78)}"><b>${marks.has(i + 78) ? '✓' : ''}</b>${nm}</button>`).join('')}</div>
+    <div class="row" style="margin-top:12px">${installBtn}</div>`;
+    if (installEvt) document.getElementById('inst').hidden = false;
+    reminder(n);
+    document.querySelectorAll('.s').forEach(b => b.onclick = () => {
+      const i = +b.dataset.i, on = !marks.has(i);
+      on ? marks.add(i) : marks.delete(i); draw();
+      api('mark', {id: s.id, surah: i, on}).catch(e => { on ? marks.delete(i) : marks.add(i); draw(); toast('ما اتحفظش التعديل، حاول تاني'); });
+    });
+    const ex = document.getElementById('ex');
+    if (ex) ex.onclick = () => run(async () => { await api('exam', {id: s.id}); s.exam = 'requested'; draw(); toast('تم إرسال طلب الاختبار'); });
+  };
+  draw();
+}
+
+function reminder(n) {
+  const today = new Date().toDateString();
+  const left = TOTAL - n;
+  const msg = left === 0 ? 'ما شاء الله، أتممت جزء عمّ! قدّم للاختبار.' : `ورد اليوم: باقي ${left} سورة. اختر سورة وراجعها وعلّم عليها ✓`;
+  const box = document.getElementById('remind');
+  if (box) box.innerHTML = `<div class="note">${msg}${('Notification' in window && Notification.permission === 'default') ? ' <button class="alt" id="nt" style="margin-top:8px">فعّل إشعارات الجهاز</button>' : ''}</div>`;
+  const nt = document.getElementById('nt');
+  if (nt) nt.onclick = async () => { await Notification.requestPermission(); reminder(n); };
+  if (localStorage.getItem('lastNote') !== today && 'Notification' in window && Notification.permission === 'granted') {
+    localStorage.setItem('lastNote', today);
+    navigator.serviceWorker?.ready.then(r => r.showNotification('حفظ وترتيل القرآن', {body: msg, icon: 'icon.svg'}));
+  }
+}
+
+/* ---------- المشرف والمالك ---------- */
+async function staffView() {
+  const d = await api('list', {pass: PASS});
+  const owner = d.role === 'owner';
+  const list = d.students;
+  const pend = list.filter(s => s.exam === 'requested').length;
+  const tabs = [['students', 'الطلاب'], ['add', 'إضافة طالب']];
+  if (owner) tabs.push(['win', 'الفائزون'], ['areas', 'المناطق']);
+  const rows = arr => arr.length ? `<div class="wrap"><table><tr><th>الكود</th><th>الاسم</th><th>السور</th><th>الاختبار</th><th>المنطقة</th><th>الهاتف</th><th>ولي الأمر</th><th></th></tr>${arr.map(s => `<tr><td>${esc(s.id)}</td><td>${esc(s.name)}</td><td>${s.marks.length}</td><td><span class="tag t-${s.exam}">${EXAM[s.exam]}</span></td><td>${esc(s.area)}</td><td>${esc(s.phone)}</td><td>${esc(s.parent)}</td><td>${s.exam === 'requested' ? `<button data-ap="${s.id}">اعتماد</button>` : s.exam === 'approved' ? `<button class="alt" data-un="${s.id}">إلغاء</button>` : ''}</td></tr>`).join('')}</table></div>` : '<p class="mute">لا يوجد طلاب بعد.</p>';
+  let body = '';
+  if (TAB === 'students') body = `<input id="q" placeholder="بحث بالاسم أو الكود أو المنطقة"><div class="card" id="tb">${rows(list)}</div>`;
+  if (TAB === 'add') body = `<div class="card"><h2>إضافة طالب</h2><input id="n" placeholder="اسم الطالب"><input id="p" inputmode="tel" placeholder="هاتف الطالب"><input id="pp" inputmode="tel" placeholder="هاتف ولي الأمر"><input id="a" placeholder="منطقة السكن"><button id="go">إضافة</button><div id="res"></div></div>`;
+  if (TAB === 'win') body = `<div class="card"><h2>الفائزون (أعلى 20% من المعتمدين في الاختبار)</h2>${d.winners.length ? `<div class="wrap"><table><tr><th>الترتيب</th><th>الكود</th><th>الاسم</th><th>السور</th><th>المنطقة</th><th>ولي الأمر</th></tr>${d.winners.map((s, i) => `<tr><td>${i + 1}</td><td>${esc(s.id)}</td><td>${esc(s.name)}</td><td>${s.marks.length}</td><td>${esc(s.area)}</td><td>${esc(s.parent)}</td></tr>`).join('')}</table></div>` : '<p class="mute">لا يوجد معتمدون في الاختبار بعد.</p>'}</div>
+    <div class="card"><h2>تصفير المسابقة</h2><p class="mute">يمسح علامات الحفظ والاختبارات ويبقي بيانات الطلاب.</p><button class="bad" id="rs">تصفير الآن</button></div>`;
+  if (TAB === 'areas') body = `<div class="card"><h2>توزيع الطلاب حسب المنطقة</h2><div class="wrap"><table><tr><th>المنطقة</th><th>العدد</th></tr>${Object.entries(d.areas).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v}</td></tr>`).join('')}</table></div></div>`;
+  app.innerHTML = `<div class="row" style="margin-bottom:12px"><div><b>${owner ? 'لوحة المالك' : 'لوحة المشرف'}</b><div class="mute">${list.length} طالب، ${pend} طلب اختبار معلّق</div></div><button class="alt" onclick="logout()" style="flex:none">خروج</button></div>
+  <div class="tabs">${tabs.map(([k, v]) => `<button class="${TAB === k ? 'on' : ''}" data-t="${k}">${v}</button>`).join('')}</div>${body}<div class="row">${installBtn}</div>`;
+  if (installEvt) document.getElementById('inst').hidden = false;
+  document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { TAB = b.dataset.t; run(staffView); });
+  const set = (sel, value) => document.querySelectorAll(sel).forEach(b => b.onclick = () => run(async () => { await api('approve', {pass: PASS, id: b.dataset.ap || b.dataset.un, value}); toast('تم'); await staffView(); }));
+  set('[data-ap]', 'approved'); set('[data-un]', 'none');
+  const q = document.getElementById('q');
+  if (q) q.oninput = () => { const k = q.value.trim(); document.getElementById('tb').innerHTML = rows(list.filter(s => (s.name + s.id + s.area).includes(k))); set('[data-ap]', 'approved'); set('[data-un]', 'none'); };
+  const go = document.getElementById('go');
+  if (go) go.onclick = () => run(async () => { const r = await api('add', {pass: PASS, name: val('n'), phone: val('p'), parent: val('pp'), area: val('a')}); document.getElementById('res').innerHTML = `<p>تمت الإضافة. كود الطالب: <b class="big">${esc(r.id)}</b></p>`; });
+  const rs = document.getElementById('rs');
+  if (rs) rs.onclick = () => { if (confirm('متأكد؟ هيتم مسح كل علامات الحفظ والاختبارات.')) run(async () => { await api('reset', {pass: PASS}); toast('تم التصفير'); await staffView(); }); };
+}
+
+function start() {
+  if (PASS) return run(staffView).then(() => { if (!app.innerHTML.trim()) logout(); });
+  if (ID) return run(studentView).then(() => { if (!app.innerHTML.trim()) logout(); });
+  loginView();
+}
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+start();
+</script>
+</body>
+</html>

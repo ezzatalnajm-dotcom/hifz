@@ -69,12 +69,12 @@ const toast = m => { const t = document.getElementById('toast'); t.textContent =
 const val = id => document.getElementById(id).value.trim();
 
 async function api(action, data = {}) {
-  const r = await fetch(API, {method: 'POST', body: JSON.stringify({action, ...data})});
+  const r = await fetch(API + '?q=' + encodeURIComponent(JSON.stringify({action, ...data})));
   const j = await r.json();
   if (j.error) throw new Error(j.error);
   return j;
 }
-async function run(fn) { try { await fn(); } catch (e) { toast(e.message === 'Failed to fetch' ? 'تعذّر الاتصال، تأكد من الإنترنت' : e.message); } }
+async function run(fn) { try { await fn(); } catch (e) { toast(e.message === 'Failed to fetch' ? 'تعذّر الاتصال بالخادم (' + e.message + ')' : e.message); } }
 
 let PASS = sessionStorage.getItem('pass') || '';
 let ID = localStorage.getItem('sid') || '';
